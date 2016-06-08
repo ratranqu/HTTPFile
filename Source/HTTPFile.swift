@@ -27,9 +27,10 @@
 
 public struct FileResponder: Responder {
     let path: String
-
-    public init(path: String) {
+    let headers : Headers
+    public init(path: String, headers: Headers = [:]) {
         self.path = path
+        self.headers = headers
     }
 
     public func respond(to request: Request) throws -> Response {
@@ -46,8 +47,7 @@ public struct FileResponder: Responder {
         if path.ends(with: "/") {
             path += "index.html"
         }
-
-        return Response(status: .ok, filePath: self.path + path)
+        return Response(status: .ok, headers: headers, filePath: self.path + path)
     }
 }
 
