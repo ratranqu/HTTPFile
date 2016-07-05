@@ -27,7 +27,8 @@
 
 public struct FileResponder: Responder {
     let path: String
-    let headers : Headers
+    let headers: Headers
+
     public init(path: String, headers: Headers = [:]) {
         self.path = path
         self.headers = headers
@@ -35,11 +36,11 @@ public struct FileResponder: Responder {
 
     public func respond(to request: Request) throws -> Response {
         if request.method != .get {
-            return Response(status: .methodNotAllowed)
+            throw ClientError.methodNotAllowed
         }
 
         guard let requestPath = request.path else {
-            return Response(status: .internalServerError)
+            throw ServerError.internalServerError
         }
 
         var path = requestPath
@@ -47,24 +48,21 @@ public struct FileResponder: Responder {
         if path.ends(with: "/") {
             path += "index.html"
         }
-        return Response(status: .ok, headers: headers, filePath: self.path + path)
+        return try Response(status: .ok, headers: headers, filePath: self.path + path)
     }
 }
 
 extension Response {
-    public init(status: Status = .ok, headers: Headers = [:], filePath: String) {
+    public init(status: Status = .ok, headers: Headers = [:], filePath: String) throws {
         do {
             let file = try File(path: filePath, mode: .read)
             self.init(status: status, headers: headers, body: file.stream)
 
-            if let
-                fileExtension = file.fileExtension,
-                mediaType = mediaType(forFileExtension: fileExtension) {
+            if let fileExtension = file.fileExtension, mediaType = mediaType(forFileExtension: fileExtension) {
                     self.contentType = mediaType
             }
-
         } catch {
-            self.init(status: .notFound)
+            throw ClientError.notFound
         }
     }
 }
